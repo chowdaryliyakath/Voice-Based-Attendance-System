@@ -1,0 +1,11 @@
+cd C:\project\voice_attendance
+
+
+venv\Scripts\activate
+
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+venv\Scripts\activate
+
+
+python app.py

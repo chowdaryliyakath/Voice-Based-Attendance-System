@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Attendance Recognition</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 500px; }
+        button { padding: 0.75rem 1.5rem; border: none; border-radius: 4px; color: white; background-color: #007bff; cursor: pointer; font-size: 1rem; transition: background-color 0.3s; }
+        button.recording { background-color: #dc3545; }
+        #status { margin-top: 1rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Attendance Recognition</h1>
+        <p>Click below and speak for 3 seconds to mark your attendance.</p>
+        <button id="recordBtn">Start Recognition</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        const recordBtn = document.getElementById('recordBtn');
+        const statusEl = document.getElementById('status');
+        let mediaRecorder, chunks = [];
+
+        recordBtn.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                chunks = [];
+
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: 'audio/wav' });
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+
+                    statusEl.textContent = "⏳ Processing voice...";
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: uint8Array
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        statusEl.textContent = `✅ Recognized: ${result.user} (Score: ${result.score.toFixed(2)})`;
+                    } else {
+                        statusEl.textContent = `❌ Not recognized (Score: ${result.score.toFixed(2)})`;
+                    }
+                };
+
+                recordBtn.disabled = true;
+                recordBtn.textContent = "Recording...";
+                recordBtn.classList.add('recording');
+                statusEl.textContent = "🎙️ Speak now...";
+
+                mediaRecorder.start();
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    stream.getTracks().forEach(t => t.stop());
+                    recordBtn.textContent = "Start Recognition";
+                    recordBtn.classList.remove('recording');
+                    recordBtn.disabled = false;
+                }, 3000);
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = "Microphone access denied.";
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enroll New Student</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 500px; }
+        input[type="text"] { width: 80%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 0.75rem 1.5rem; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 1rem; transition: background-color 0.3s; }
+        #recordBtn { background-color: #007bff; }
+        #recordBtn.recording { background-color: #dc3545; }
+        #submitBtn { background-color: #28a745; margin-left: 1rem; }
+        #submitBtn:disabled { background-color: #9e9e9e; cursor: not-allowed; }
+        .status { margin-top: 1rem; font-weight: bold; min-height: 20px; }
+        .success-message { color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Enroll New Student</h1>
+        <p>You will need to record three separate 3-second audio samples.</p>
+        <form id="enrollForm" method="post" enctype="multipart/form-data">
+            <input type="text" id="name" name="name" placeholder="Enter Student Name" required>
+            <br>
+            <button type="button" id="recordBtn">Start Enrollment</button>
+            <button type="submit" id="submitBtn" disabled>Submit Enrollment</button>
+        </form>
+        <p id="status" class="status"></p>
+    </div>
+
+    <script>
+const recordBtn = document.getElementById('recordBtn');
+const submitBtn = document.getElementById('submitBtn');
+const statusEl = document.getElementById('status');
+const nameInput = document.getElementById('name');
+const form = document.getElementById('enrollForm');
+
+let audioBlobs = [];
+let sampleCount = 0;
+let mediaRecorder = null;
+let chunks = [];
+
+async function recordSample() {
+    if (!nameInput.value.trim()) {
+        statusEl.textContent = 'Please enter a name first.';
+        return;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        chunks = [];
+
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/wav' });
+            audioBlobs.push(blob);
+
+            stream.getTracks().forEach(t => t.stop()); // stop mic
+
+            if (sampleCount < 3) {
+                statusEl.textContent = `✅ Sample ${sampleCount} recorded. Click to record next.`;
+                recordBtn.textContent = `Record Sample ${sampleCount + 1}`;
+                recordBtn.disabled = false;
+            } else {
+                statusEl.textContent = '✅ All samples recorded. Ready to submit.';
+                recordBtn.textContent = 'Re-record All';
+                submitBtn.disabled = false;
+                recordBtn.disabled = false;
+            }
+        };
+
+        recordBtn.classList.add('recording');
+        recordBtn.disabled = true;
+        sampleCount++;
+        statusEl.textContent = `🔴 Recording sample ${sampleCount} of 3...`;
+
+        mediaRecorder.start();
+        setTimeout(() => {
+            mediaRecorder.stop();
+            recordBtn.classList.remove('recording');
+        }, 3000);
+
+    } catch (err) {
+        console.error("Mic error:", err);
+        statusEl.textContent = 'Microphone access denied or unavailable.';
+    }
+}
+
+recordBtn.onclick = () => {
+    if (sampleCount === 3) {
+        audioBlobs = [];
+        sampleCount = 0;
+        submitBtn.disabled = true;
+        recordBtn.textContent = "Start Enrollment";
+    }
+    recordSample();
+};
+
+form.onsubmit = async (event) => {
+    event.preventDefault();
+    if (audioBlobs.length < 3) return;
+
+    const formData = new FormData();
+    formData.append('name', nameInput.value);
+    audioBlobs.forEach((blob, i) => formData.append('audio_data', blob, `sample${i + 1}.wav`));
+
+    statusEl.textContent = 'Submitting...';
+    submitBtn.disabled = true;
+    recordBtn.disabled = true;
+
+    try {
+        const response = await fetch('/enroll', { method: 'POST', body: formData });
+        if (response.ok) {
+            window.location.href = response.url;
+        } else {
+            throw new Error('Server error');
+        }
+    } catch (error) {
+        console.error(error);
+        statusEl.textContent = 'Submission failed.';
+        submitBtn.disabled = false;
+        recordBtn.disabled = false;
+    }
+};
+</script>
+</body>
+</html>

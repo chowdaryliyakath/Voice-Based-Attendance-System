@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      width: 90%;
+      max-width: 800px;
+      margin-top: 40px;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .btns {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.5rem;
+      gap: 10px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Voice Attendance Dashboard</h1>
+    {% if records %}
+      <table>
+        <tr>
+          <th>ID</th>
+          <th>Student Name</th>
+          <th>Timestamp</th>
+        </tr>
+        {% for record in records %}
+        <tr>
+          <td>{{ record.id }}</td>
+          <td>{{ record.name }}</td>
+          <td>{{ record.time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p style="text-align:center; color: gray;">No attendance records yet.</p>
+    {% endif %}
+    <div class="btns">
+      <button onclick="window.location.href='/enroll'">➕ Enroll Student</button>
+      <button onclick="window.location.href='/recognize'">🎙️ Recognize Voice</button>
+      <button onclick="window.location.reload()">🔄 Refresh</button>
+    </div>
+  </div>
+</body>
+</html>
