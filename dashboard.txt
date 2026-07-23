@@ -1,7 +1,0 @@
-USE voice_attendance;
-
--- To clear attendance records (keep students):
-DELETE FROM attendance;
-
--- To verify it's empty:
-SELECT * FROM attendance;
